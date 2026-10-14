@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShotLink - ย่อลิงก์อัจฉริยะ เปลี่ยน URL ปลายทางได้ทันที</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons (Local) -->
+  <script src="/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="/adminShotLink" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <i data-lucide="link-2" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+            ShotLink <span class="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-medium px-2 py-0.5 rounded-full">Admin</span>
+          </span>
+          <p class="text-xs text-slate-400 hidden sm:block">ย่อลิงก์ & เปลี่ยนปลายทางได้ทันที</p>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-2">
+        <a href="#createSection" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/20">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>สร้างลิงก์ใหม่</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 space-y-8">
+
+    <!-- Hero / Create Box -->
+    <section id="createSection" class="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-900/40 p-6 md:p-8 shadow-2xl backdrop-blur">
+      <div class="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="max-w-3xl mx-auto text-center mb-6">
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">
+          ย่อลิงก์สั้น <span class="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">เปลี่ยนปลายทางได้ตลอดเวลา</span>
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base">
+          เปลี่ยน URL ปลายทางได้ทันทีโดยไม่ต้องเปลี่ยนลิงก์เดิม เหมาะสำหรับป้ายโฆษณา, โพสต์โซเชียล, และ QR Code
+        </p>
+      </div>
+
+      <!-- Creation Form -->
+      <form id="createLinkForm" class="max-w-3xl mx-auto space-y-4">
+        <!-- Input Header with ShopeePay Converter Button -->
+        <div class="flex items-center justify-between mb-1 px-1">
+          <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>URL ปลายทางที่ต้องการย่อ</span>
+          </label>
+          <button 
+            type="button" 
+            onclick="openShopeeModal()"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gradient-to-r from-orange-500/10 to-amber-500/10 hover:from-orange-500/20 hover:to-amber-500/20 text-orange-400 border border-orange-500/30 transition-all active:scale-95 shadow-sm"
+          >
+            <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+            <span>ถอด / แปลงลิงก์ ShopeePay</span>
+          </button>
+        </div>
+
+        <!-- Main URL Input -->
+        <div class="relative flex flex-col sm:flex-row items-stretch gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800 shadow-inner focus-within:border-indigo-500 transition-colors">
+          <div class="relative flex-1 flex items-center min-h-[48px]">
+            <span class="absolute left-3.5 text-slate-500 pointer-events-none">
+              <i data-lucide="globe" class="w-5 h-5"></i>
+            </span>
+            <input 
+              type="text" 
+              id="targetUrlInput"
+              required
+              placeholder="วาง URL ยาว เช่น https://example.com/very-long-url..." 
+              class="w-full pl-11 pr-3 py-3 bg-transparent text-white placeholder-slate-500 text-sm md:text-base focus:outline-none"
+            >
+          </div>
+          <button 
+            type="submit" 
+            id="submitBtn"
+            class="h-12 px-7 rounded-xl font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-[0.98] shrink-0"
+          >
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>ย่อลิงก์</span>
+          </button>
+        </div>
+
+        <!-- Slug & Options Section (Always accessible & equal heights) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <!-- Left Column: Slug Input with Randomizer -->
+          <div class="flex flex-col">
+            <!-- Label & Chips Row -->
+            <div class="flex items-center justify-between mb-2 min-h-[28px] gap-1 flex-wrap">
+              <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+                <i data-lucide="tag" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span>รหัสลิงก์ย่อ (Slug)</span>
+              </label>
+              <!-- Quick random chips -->
+              <div class="flex items-center gap-1 text-[11px] shrink-0">
+                <button type="button" onclick="generateRandomSlugClient('alphanumeric', 6)" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded-md transition-colors flex items-center gap-0.5 active:scale-95">
+                  <span>🎲 6 ตัว</span>
+                </button>
+                <button type="button" onclick="generateRandomSlugClient('alphanumeric', 4)" class="text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-md transition-colors flex items-center gap-0.5 active:scale-95">
+                  <span>⚡ 4 ตัว</span>
+                </button>
+                <button type="button" onclick="generateRandomSlugClient('friendly')" class="text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-md transition-colors flex items-center gap-0.5 active:scale-95">
+                  <span>📖 คำจำง่าย</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Input Container with matching h-12 (48px) -->
+            <div class="h-12 flex items-center bg-slate-950/90 border border-slate-800 rounded-xl px-3 text-sm focus-within:border-indigo-500 transition-colors shadow-inner">
+              <span class="text-slate-500 text-xs font-mono select-none truncate max-w-[95px] sm:max-w-none shrink-0" id="domainPrefix">shot.link/</span>
+              <input 
+                type="text" 
+                id="customSlugInput"
+                placeholder="เว้นว่างเพื่อสุ่ม หรือกดปุ่ม"
+                class="w-full min-w-0 bg-transparent text-white placeholder-slate-600 focus:outline-none font-mono text-sm px-1.5"
+              >
+              <button 
+                type="button" 
+                onclick="generateRandomSlugClient('alphanumeric', 6)" 
+                title="กดเพื่อสุ่มรหัสใหม่" 
+                class="h-8 px-2.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white transition-all flex items-center gap-1 text-xs shrink-0 active:scale-95 border border-slate-700/50"
+              >
+                <i data-lucide="dices" class="w-3.5 h-3.5"></i>
+                <span class="text-xs font-medium">สุ่ม</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Column: Title / Memo Input -->
+          <div class="flex flex-col">
+            <!-- Label aligned with exact same min-h-[28px] and mb-2 -->
+            <div class="flex items-center justify-between mb-2 min-h-[28px]">
+              <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+                <i data-lucide="bookmark" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span>ชื่อกำกับ / บันทึกช่วยจำ</span>
+              </label>
+              <span class="text-[11px] text-slate-500">(ไม่บังคับ)</span>
+            </div>
+
+            <!-- Input Container with exact matching h-12 (48px) -->
+            <div class="h-12 flex items-center bg-slate-950/90 border border-slate-800 rounded-xl px-3 text-sm focus-within:border-indigo-500 transition-colors shadow-inner">
+              <input 
+                type="text" 
+                id="linkTitleInput"
+                placeholder="เช่น ลิงก์โปรโมชั่น Facebook, แคมเปญ LINE OA"
+                class="w-full min-w-0 bg-transparent text-white placeholder-slate-600 focus:outline-none text-sm"
+              >
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Stats Bar (Mobile Optimized) -->
+    <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+          <i data-lucide="link" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] sm:text-xs text-slate-400 truncate">ลิงก์ทั้งหมด</div>
+          <div class="text-base sm:text-xl font-bold text-white" id="statTotalLinks">0</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+          <i data-lucide="mouse-pointer-click" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] sm:text-xs text-slate-400 truncate">ยอดคลิกรวม</div>
+          <div class="text-base sm:text-xl font-bold text-emerald-400" id="statTotalClicks">0</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center shrink-0">
+          <i data-lucide="check-circle" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[10px] sm:text-xs text-slate-400 truncate">กำลังทำงาน</div>
+          <div class="text-base sm:text-xl font-bold text-sky-400" id="statActiveLinks">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Links Management Section -->
+    <section class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i data-lucide="list" class="w-5 h-5 text-indigo-400"></i>
+            รายการลิงก์ย่อของคุณ
+          </h2>
+          <span class="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full" id="linkCountBadge">0 ลิงก์</span>
+        </div>
+
+        <!-- Search Box -->
+        <div class="relative w-full sm:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="ค้นหาตามชื่อ, slug, หรือ URL..."
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+          >
+        </div>
+      </div>
+
+      <!-- Links Container -->
+      <div id="linksContainer" class="space-y-3">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-16 border border-dashed border-slate-800 rounded-2xl bg-slate-900/20">
+        <div class="w-14 h-14 mx-auto rounded-full bg-slate-800/80 text-slate-500 flex items-center justify-center mb-3">
+          <i data-lucide="inbox" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-300 mb-1">ยังไม่มีลิงก์ย่อ</h3>
+        <p class="text-sm text-slate-500 max-w-sm mx-auto">
+          วาง URL ปลายทางด้านบนแล้วกดย่อลิงก์เพื่อเริ่มต้นสร้างลิงก์แรกของคุณ
+        </p>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="text-center py-16">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-700 border-t-indigo-500"></div>
+        <p class="text-sm text-slate-400 mt-2">กำลังโหลดข้อมูลลิงก์...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-600">
+    <p>ShotLink &copy; 2026 - ระบบย่อลิงก์ที่สามารถปรับเปลี่ยน URL ปลายทางได้ทันทีแบบเรียลไทม์</p>
+  </footer>
+
+  <!-- ================= EDIT MODAL (เปลี่ยน URL ทันที) ================= -->
+  <div id="editModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 fade-in">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-1">
+            <i data-lucide="zap" class="w-3 h-3"></i> อัปเดตทันที
+          </span>
+          <h3 class="text-lg font-bold text-white">เปลี่ยน URL ปลายทาง</h3>
+          <p class="text-xs text-slate-400">เมื่อบันทึกแล้ว ผู้ที่คลิกลิงก์ย่อจะถูกพาไปยัง URL ใหม่ทันที</p>
+        </div>
+        <button type="button" onclick="closeEditModal()" class="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="editForm" class="space-y-4">
+        <input type="hidden" id="editLinkId">
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="tag" class="w-3.5 h-3.5 text-indigo-400"></i>
+              รหัสลิงก์ย่อ (Slug)
+            </label>
+            <div class="flex items-center gap-1.5">
+              <button 
+                type="button" 
+                onclick="generateRandomEditSlug('alphanumeric', 6)" 
+                class="text-[11px] text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1"
+              >
+                <i data-lucide="dices" class="w-3 h-3"></i>
+                <span>สุ่มรหัสใหม่</span>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus-within:border-indigo-500 transition-colors">
+            <span class="text-slate-500 text-xs font-mono select-none" id="editDomainPrefix">shot.link/</span>
+            <input 
+              type="text" 
+              id="editSlugInput" 
+              required
+              placeholder="รหัส slug"
+              class="w-full bg-transparent text-indigo-400 focus:outline-none font-mono text-sm pl-1 font-semibold"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">
+            URL ปลายทางใหม่ <span class="text-rose-400">*</span>
+          </label>
+          <div class="relative flex items-center">
+            <span class="absolute left-3 text-slate-500">
+              <i data-lucide="external-link" class="w-4 h-4"></i>
+            </span>
+            <input 
+              type="text" 
+              id="editTargetUrlInput" 
+              required
+              placeholder="https://new-destination.com..."
+              class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 font-mono"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อกำกับ / บันทึกช่วยจำ</label>
+          <input 
+            type="text" 
+            id="editTitleInput" 
+            placeholder="เช่น ปลายทางโปรโมชั่นใหม่"
+            class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button 
+            type="button" 
+            onclick="closeEditModal()" 
+            class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            ยกเลิก
+          </button>
+          <button 
+            type="submit" 
+            id="saveEditBtn"
+            class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
+          >
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>บันทึกและเปลี่ยนทันที</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= QR CODE MODAL ================= -->
+  <div id="qrModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4 fade-in">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="qr-code" class="w-5 h-5 text-indigo-400"></i>
+          QR Code ลิงก์ย่อ
+        </h3>
+        <button type="button" onclick="closeQrModal()" class="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl inline-block shadow-inner mx-auto">
+        <img id="qrImage" src="" alt="QR Code" class="w-56 h-56 mx-auto object-contain">
+      </div>
+
+      <div>
+        <p class="text-xs text-slate-400 mb-1">ลิงก์ที่ถูกสแกน:</p>
+        <div class="bg-slate-950 px-3 py-1.5 rounded-lg text-indigo-400 text-xs font-mono truncate" id="qrLinkText"></div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <a 
+          id="qrDownloadBtn" 
+          download="shotlink-qr.png" 
+          href="#"
+          class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20"
+        >
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>ดาวน์โหลด QR</span>
+        </a>
+        <button 
+          type="button" 
+          onclick="copyQrLink()" 
+          class="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white transition-all flex items-center justify-center gap-1.5"
+        >
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span>คัดลอกลิงก์</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SHOPEEPAY CONVERTER MODAL ================= -->
+  <div id="shopeeModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 fade-in">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-1">
+            <i data-lucide="sparkles" class="w-3 h-3"></i> เครื่องมือถอด URL ShopeePay
+          </span>
+          <h3 class="text-lg font-bold text-white">ถอดรหัส URL ลิงก์ ShopeePay</h3>
+          <p class="text-xs text-slate-400">ถอด URL จาก <code class="text-orange-300 font-mono">shopeepayth://...</code> เป็น <code class="text-emerald-400 font-mono">https://app.shopeepay.co.th/...</code></p>
+        </div>
+        <button type="button" onclick="closeShopeeModal()" class="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Input ShopeePay Link -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-slate-300">วางลิงก์ ShopeePay (shopeepayth://...)</label>
+            <button type="button" onclick="pasteShopeePaySample()" class="text-[11px] text-orange-400 hover:text-orange-300 hover:underline">
+              ใส่ตัวอย่าง
+            </button>
+          </div>
+          <textarea 
+            id="shopeeInput"
+            rows="3"
+            placeholder="วางลิงก์ shopeepayth://main?apprl=rn%2FTRANSFER_PAGE... ที่นี่"
+            class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-orange-500 resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Output Converted Link -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-medium text-slate-300 flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>URL แท้จริงที่ถอดรหัสได้ (พร้อมนำไปย่อ)</span>
+            </label>
+            <div class="flex items-center gap-1 text-[11px]">
+              <button type="button" id="modeExtractBtn" onclick="setShopeeMode('extract')" class="px-2 py-0.5 rounded font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ถอด URL แท้จริง
+              </button>
+              <button type="button" id="modeWrapBtn" onclick="setShopeeMode('wrap')" class="px-2 py-0.5 rounded font-medium text-slate-400 hover:text-white">
+                แบบครอบโดเมน
+              </button>
+            </div>
+          </div>
+          <div class="relative">
+            <textarea 
+              id="shopeeOutput"
+              rows="3"
+              readonly
+              placeholder="ผลลัพธ์ https://app.shopeepay.co.th/... จะแสดงที่นี่อัตโนมัติ"
+              class="w-full p-3 bg-slate-950/80 border border-slate-800 rounded-xl text-emerald-400 text-xs font-mono focus:outline-none resize-none select-all"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Decoded Info (Decoded inner universal link) -->
+        <div id="shopeeDecodedBox" class="hidden bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs space-y-1">
+          <div class="text-slate-400 font-medium flex items-center gap-1 text-[11px]">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>ลิงก์ปลายทางข้างใน (Decoded Angbao Link):</span>
+          </div>
+          <div id="shopeeDecodedText" class="text-slate-300 font-mono break-all text-[11px] select-all"></div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-2">
+        <button 
+          type="button" 
+          onclick="closeShopeeModal()" 
+          class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          ปิด
+        </button>
+        <button 
+          type="button" 
+          onclick="copyShopeeOutput()" 
+          class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-white transition-all flex items-center justify-center gap-1.5"
+        >
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>คัดลอกผลลัพธ์</span>
+        </button>
+        <button 
+          type="button" 
+          onclick="applyShopeeToTarget()" 
+          class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white transition-all shadow-lg shadow-orange-500/25 flex items-center justify-center gap-1.5 active:scale-95"
+        >
+          <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+          <span>ใส่ในช่องย่อลิงก์ทันที</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
